@@ -77,12 +77,14 @@
   </div>
 
   <ul id="listaFechas"></ul>
-
   <div class="stats" id="estadisticas"></div>
 
   <script>
-    const CLIENT_ID = 'a1b2c3d4e5f6g7'; // Sustituye por el tuyo de Dropbox
+    const CLIENT_ID = 'a1b2c3d4e5f6g7'; // Pon aquí tu app key de Dropbox
+    const REDIRECT_URI = 'https://sfendor.github.io/SDAY/';
+    let accessToken = null;
     const dbx = new Dropbox.Dropbox({ clientId: CLIENT_ID });
+
     let fechas = JSON.parse(localStorage.getItem('fechasSexo')) || [];
 
     function guardarLocal() {
@@ -95,7 +97,7 @@
       const valor = fechaInput.value;
       if (valor && !fechas.includes(valor)) {
         fechas.push(valor);
-        fechas.sort(); // Ordenar por fecha
+        fechas.sort();
         guardarLocal();
         fechaInput.value = '';
       }
@@ -106,13 +108,18 @@
       guardarLocal();
     }
 
+    function formatoBonito(fechaISO) {
+      const [yyyy, mm, dd] = fechaISO.split('-');
+      return `${dd}/${mm}/${yyyy}`;
+    }
+
     function renderizar() {
       const lista = document.getElementById('listaFechas');
       lista.innerHTML = '';
       fechas.forEach(f => {
         const li = document.createElement('li');
         li.innerHTML = `
-          ${f}
+          ${formatoBonito(f)}
           <button onclick="eliminarFecha('${f}')">Eliminar</button>
         `;
         lista.appendChild(li);
@@ -152,8 +159,6 @@
         `📅 En ${anio}, hay ${dias.length} registros. Media: cada ${media.toFixed(1)} días.`;
     }
 
-    // ------------------ DROPBOX -------------------
-
     function guardarEnDropbox() {
       if (!accessToken) {
         iniciarAuthDropbox();
@@ -190,13 +195,8 @@
       });
     }
 
-    // ------------------ AUTH -------------------
-
-    let accessToken = null;
-
     function iniciarAuthDropbox() {
-      const redirectUri = window.location.href.split('?')[0];
-      const authUrl = `https://www.dropbox.com/oauth2/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${redirectUri}`;
+      const authUrl = `https://www.dropbox.com/oauth2/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
       window.location.href = authUrl;
     }
 
