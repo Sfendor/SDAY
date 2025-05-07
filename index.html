@@ -176,25 +176,35 @@
       });
     }
 
-    function cargarDeDropbox() {
-      if (!accessToken) {
-        iniciarAuthDropbox();
-        return;
-      }
-      const dbxClient = new Dropbox.Dropbox({ accessToken });
-      dbxClient.filesDownload({ path: '/registro_sexual.json' }).then(res => {
-        const reader = new FileReader();
-        reader.onload = function () {
+function cargarDeDropbox() {
+  if (!accessToken) {
+    iniciarAuthDropbox();
+    return;
+  }
+
+  const dbxClient = new Dropbox.Dropbox({ accessToken });
+  dbxClient.filesDownload({ path: '/registro_sexual.json' })
+    .then(res => {
+      const reader = new FileReader();
+      reader.onload = function () {
+        try {
           fechas = JSON.parse(reader.result);
           guardarLocal();
           alert('Datos cargados desde Dropbox 🎉');
-        };
-        reader.readAsText(res.fileBlob);
-      }).catch(err => {
+        } catch (e) {
+          alert('Error al leer el archivo: formato inválido ❌');
+        }
+      };
+      reader.readAsText(res.fileBlob);
+    })
+    .catch(err => {
+      if (err.status === 409) {
+        alert('No hay archivo aún en Dropbox. Guarda primero 😉');
+      } else {
         alert('Error al cargar: ' + err.message);
-      });
-    }
-
+      }
+    });
+}
     function iniciarAuthDropbox() {
       const authUrl = `https://www.dropbox.com/oauth2/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
       window.location.href = authUrl;
