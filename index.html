@@ -63,7 +63,7 @@
   </style>
 </head>
 <body>
-  <h1>🔞 Registrador Sexy 🔞</h1>
+  <h1>🔞 SDAYS 🔞</h1>
 
   <div class="flex">
     <input type="date" id="fecha" />
@@ -85,142 +85,170 @@
   let accessToken = null;
   const dbx = new Dropbox.Dropbox({ clientId: CLIENT_ID });
 
-    let fechas = JSON.parse(localStorage.getItem('fechasSexo')) || [];
+  let fechas = JSON.parse(localStorage.getItem('fechasSexo')) || [];
 
-    function guardarLocal() {
-      localStorage.setItem('fechasSexo', JSON.stringify(fechas));
-      renderizar();
-    }
+  function guardarLocal() {
+    localStorage.setItem('fechasSexo', JSON.stringify(fechas));
+    renderizar();
+  }
 
-    function agregarFecha() {
-      const fechaInput = document.getElementById('fecha');
-      const valor = fechaInput.value;
-      if (valor && !fechas.includes(valor)) {
-        fechas.push(valor);
-        fechas.sort();
+  function agregarFecha() {
+    const fechaInput = document.getElementById('fecha');
+    const valor = fechaInput.value;
+    if (valor) {
+      const fechaFormateada = formatoBonito(valor); // Guardar en formato día/mes/año
+      if (!fechas.includes(fechaFormateada)) {
+        fechas.push(fechaFormateada);
+        fechas.sort((a, b) => {
+          const [d1, m1, y1] = a.split('/').map(Number);
+          const [d2, m2, y2] = b.split('/').map(Number);
+          return new Date(y1, m1 - 1, d1) - new Date(y2, m2 - 1, d2);
+        });
         guardarLocal();
         fechaInput.value = '';
       }
     }
-
-    function eliminarFecha(fecha) {
-      fechas = fechas.filter(f => f !== fecha);
-      guardarLocal();
-    }
-
-    function formatoBonito(fechaISO) {
-      const [yyyy, mm, dd] = fechaISO.split('-');
-      return `${dd}/${mm}/${yyyy}`;
-    }
-
-    function renderizar() {
-      const lista = document.getElementById('listaFechas');
-      lista.innerHTML = '';
-      fechas.forEach(f => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          ${formatoBonito(f)}
-          <button onclick="eliminarFecha('${f}')">Eliminar</button>
-        `;
-        lista.appendChild(li);
-      });
-
-      actualizarEstadisticas();
-      llenarSelectAnios();
-    }
-
-    function llenarSelectAnios() {
-      const select = document.getElementById('anioSelect');
-      const anios = [...new Set(fechas.map(f => f.slice(0, 4)))];
-      select.innerHTML = '';
-      anios.forEach(anio => {
-        const option = document.createElement('option');
-        option.value = anio;
-        option.textContent = anio;
-        select.appendChild(option);
-      });
-    }
-
-    function actualizarEstadisticas() {
-      const anio = document.getElementById('anioSelect').value;
-      const fechasFiltradas = fechas.filter(f => f.startsWith(anio));
-      if (fechasFiltradas.length < 2) {
-        document.getElementById('estadisticas').textContent = 'Agrega más fechas para ver la media.';
-        return;
-      }
-
-      const dias = fechasFiltradas.map(f => new Date(f)).sort((a, b) => a - b);
-      const primero = dias[0];
-      const ultimo = dias[dias.length - 1];
-      const diferenciaTotal = (ultimo - primero) / (1000 * 60 * 60 * 24);
-      const media = diferenciaTotal / (dias.length - 1);
-
-      document.getElementById('estadisticas').textContent =
-        `📅 En ${anio}, hay ${dias.length} registros. Media: cada ${media.toFixed(1)} días.`;
-    }
-
-    function guardarEnDropbox() {
-      if (!accessToken) {
-        iniciarAuthDropbox();
-        return;
-      }
-      const dbxClient = new Dropbox.Dropbox({ accessToken });
-      dbxClient.filesUpload({
-        path: '/registro_sexual.json',
-        contents: JSON.stringify(fechas),
-        mode: 'overwrite'
-      }).then(() => {
-        alert('Guardado en Dropbox con éxito 😎');
-      }).catch(err => {
-        alert('Error al guardar: ' + err.message);
-      });
-    }
-
-function cargarDeDropbox() {
-  if (!accessToken) {
-    iniciarAuthDropbox();
-    return;
   }
 
-  const dbxClient = new Dropbox.Dropbox({ accessToken });
-  dbxClient.filesDownload({ path: '/registro_sexual.json' })
-    .then(res => {
-      const reader = new FileReader();
-      reader.onload = function () {
-        try {
-          fechas = JSON.parse(reader.result);
-          guardarLocal();
-          alert('Datos cargados desde Dropbox 🎉');
-        } catch (e) {
-          alert('Error al leer el archivo: formato inválido ❌');
-        }
-      };
-      reader.readAsText(res.fileBlob);
-    })
-    .catch(err => {
-      if (err.status === 409) {
-        alert('No hay archivo aún en Dropbox. Guarda primero 😉');
-      } else {
-        alert('Error al cargar: ' + err.message);
-      }
+  function eliminarFecha(fecha) {
+    fechas = fechas.filter(f => f !== fecha);
+    guardarLocal();
+  }
+
+  function formatoBonito(fechaISO) {
+    const [yyyy, mm, dd] = fechaISO.split('-');
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  function renderizar() {
+    const lista = document.getElementById('listaFechas');
+    const anioSelect = document.getElementById('anioSelect');
+    lista.innerHTML = '';
+
+    // Filtrar fechas según el año seleccionado
+    const anioSeleccionado = anioSelect.value;
+    const fechasFiltradas =
+      anioSeleccionado === 'Todos'
+        ? fechas
+        : fechas.filter(f => f.endsWith(`/${anioSeleccionado}`));
+
+    fechasFiltradas.forEach(f => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        ${f}
+        <button onclick="eliminarFecha('${f}')">Eliminar</button>
+      `;
+      lista.appendChild(li);
     });
-}
-    function iniciarAuthDropbox() {
-      const authUrl = `https://www.dropbox.com/oauth2/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
-      window.location.href = authUrl;
+
+    actualizarEstadisticas();
+    llenarSelectAnios();
+  }
+
+  function llenarSelectAnios() {
+    const select = document.getElementById('anioSelect');
+    const anios = [...new Set(fechas.map(f => f.split('/')[2]))];
+    select.innerHTML = '<option value="Todos">Todos</option>';
+    anios.forEach(anio => {
+      const option = document.createElement('option');
+      option.value = anio;
+      option.textContent = anio;
+      select.appendChild(option);
+    });
+  }
+
+  function actualizarEstadisticas() {
+    const anio = document.getElementById('anioSelect').value;
+    const fechasFiltradas =
+      anio === 'Todos'
+        ? fechas
+        : fechas.filter(f => f.endsWith(`/${anio}`));
+
+    if (fechasFiltradas.length < 2) {
+      document.getElementById('estadisticas').textContent =
+        'Agrega más fechas para ver la media.';
+      return;
     }
 
-    function obtenerTokenDeURL() {
-      if (window.location.hash) {
-        const params = new URLSearchParams(window.location.hash.substr(1));
-        if (params.has('access_token')) {
-          accessToken = params.get('access_token');
+    const dias = fechasFiltradas
+      .map(f => {
+        const [dd, mm, yyyy] = f.split('/').map(Number);
+        return new Date(yyyy, mm - 1, dd);
+      })
+      .sort((a, b) => a - b);
+
+    const primero = dias[0];
+    const ultimo = dias[dias.length - 1];
+    const diferenciaTotal = (ultimo - primero) / (1000 * 60 * 60 * 24);
+    const media = diferenciaTotal / (dias.length - 1);
+
+    document.getElementById('estadisticas').textContent =
+      `📅 En ${anio === 'Todos' ? 'todos los años' : anio}, hay ${
+        dias.length
+      } registros. Media: cada ${media.toFixed(1)} días.`;
+  }
+
+  function guardarEnDropbox() {
+    if (!accessToken) {
+      iniciarAuthDropbox();
+      return;
+    }
+    const dbxClient = new Dropbox.Dropbox({ accessToken });
+    dbxClient.filesUpload({
+      path: '/Sday.json', // Cambiar el nombre del archivo
+      contents: JSON.stringify(fechas),
+      mode: 'overwrite'
+    }).then(() => {
+      alert('Guardado en Dropbox con éxito 😎');
+    }).catch(err => {
+      alert('Error al guardar: ' + err.message);
+    });
+  }
+
+  function cargarDeDropbox() {
+    if (!accessToken) {
+      iniciarAuthDropbox();
+      return;
+    }
+
+    const dbxClient = new Dropbox.Dropbox({ accessToken });
+    dbxClient.filesDownload({ path: '/Sday.json' }) // Cambiar el nombre del archivo
+      .then(res => {
+        const reader = new FileReader();
+        reader.onload = function () {
+          try {
+            fechas = JSON.parse(reader.result);
+            guardarLocal();
+            alert('Datos cargados desde Dropbox 🎉');
+          } catch (e) {
+            alert('Error al leer el archivo: formato inválido ❌');
+          }
+        };
+        reader.readAsText(res.fileBlob);
+      })
+      .catch(err => {
+        if (err.status === 409) {
+          alert('No hay archivo aún en Dropbox. Guarda primero 😉');
+        } else {
+          alert('Error al cargar: ' + err.message);
         }
+      });
+  }
+
+  function iniciarAuthDropbox() {
+    const authUrl = `https://www.dropbox.com/oauth2/authorize?response_type=token&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+    window.location.href = authUrl;
+  }
+
+  function obtenerTokenDeURL() {
+    if (window.location.hash) {
+      const params = new URLSearchParams(window.location.hash.substr(1));
+      if (params.has('access_token')) {
+        accessToken = params.get('access_token');
       }
     }
+  }
 
-    obtenerTokenDeURL();
-    renderizar();
-  </script>
-</body>
-</html>
+  obtenerTokenDeURL();
+  renderizar();
+</script>
