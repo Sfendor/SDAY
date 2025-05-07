@@ -80,10 +80,10 @@
   <div class="stats" id="estadisticas"></div>
 
   <script>
-    const CLIENT_ID = '2ddgjm0c2qi837j'; // Pon aquí tu app key de Dropbox
-    const REDIRECT_URI = 'https://sfendor.github.io/SDAY/';
-    let accessToken = null;
-    const dbx = new Dropbox.Dropbox({ clientId: CLIENT_ID });
+  const CLIENT_ID = '2ddgjm0c2qi837j';
+  const REDIRECT_URI = 'https://sfendor.github.io/SDAY/';
+  let accessToken = null;
+  const dbx = new Dropbox.Dropbox({ clientId: CLIENT_ID });
 
     let fechas = JSON.parse(localStorage.getItem('fechasSexo')) || [];
 
